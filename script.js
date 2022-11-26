@@ -10,13 +10,19 @@ const settings = {
 
 let noteOn = null
 let finishedNotes = []
+let font;
 
-// Create a new canvas to the browser size
-function setup() {
-  createCanvas(windowWidth, windowHeight);
+function preload() {
+  font = loadFont('assets/DePixelHalbfett.otf');
 }
 
-// On window resize, update the canvas size
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  textFont(font);
+  textSize(16);
+  noSmooth();
+}
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
@@ -40,6 +46,8 @@ function draw() {
   // Remove finished notes outside screen
   const frameScreenLimit = frameCount - windowWidth / settings.speed
   finishedNotes = finishedNotes.filter(note => note.on > frameScreenLimit)
+
+  text('SNARE', 10, 50);
 
   for (let i = 0; i < finishedNotes.length; i++) {
     const note = finishedNotes[i];
