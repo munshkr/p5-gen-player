@@ -1,6 +1,6 @@
 const GUI = lil.GUI;
 
-const NOTE_HEIGHT = 40
+const NOTE_HEIGHT = 40;
 
 const settings = {
   midiDevice: null,
@@ -88,36 +88,47 @@ function connectMidiDevice() {
   console.log(`Listening on MIDI input '${settings.midiDevice}' channel ${settings.midiChannel}`)
 }
 
-function init() {
-  const gui = new GUI();
+const gui = new GUI();
 
-  gui.add(settings, 'speed', 0.1, 30)
-
-  // Enable WEBMIDI.js and trigger the onEnabled() function when ready
-  WebMidi
-    .enable()
-    .then(onEnabled)
-  // .catch(err => alert(err));
-
-  // Function triggered when WEBMIDI.js is ready
-  function onEnabled() {
-    if (WebMidi.inputs.length < 1) {
-      console.error("No MIDI input devices were found :(")
-      return
-    }
-
-    console.log(`${WebMidi.inputs.length} MIDI devices found:`);
-    WebMidi.inputs.forEach((device, i) => {
-      console.log(`[${i}] ${device.name}`)
-    })
-
-    settings.midiDevice = WebMidi.inputs[0].name
-
-    gui.add(settings, 'midiDevice', WebMidi.inputs.map(dev => dev.name)).onChange(connectMidiDevice)
-    gui.add(settings, 'midiChannel', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]).onChange(connectMidiDevice)
-
-    connectMidiDevice()
-  }
+function savePreset() {
+  const preset = gui.save();
+  localStorage.setItem('preset', JSON.stringify(preset));
 }
 
-init()
+function loadPreset() {
+  const preset = localStorage.getItem('preset');
+  if (!preset) return;
+  gui.load(JSON.parse(preset));
+}
+
+gui.add(settings, 'speed', 0.1, 30).onFinishChange(savePreset)
+
+// Enable WEBMIDI.js and trigger the onEnabled() function when ready
+WebMidi
+  .enable()
+  .then(onEnabled)
+
+// Function triggered when WEBMIDI.js is ready
+function onEnabled() {
+  if (WebMidi.inputs.length < 1) {
+    console.error("No MIDI input devices were found :(")
+    return
+  }
+
+  console.log(`${WebMidi.inputs.length} MIDI devices found:`);
+  WebMidi.inputs.forEach((device, i) => {
+    console.log(`[${i}] ${device.name}`)
+  })
+
+  settings.midiDevice = WebMidi.inputs[0].name
+
+  gui.add(settings, 'midiDevice', WebMidi.inputs.map(dev => dev.name))
+    .onChange(connectMidiDevice)
+    .onFinishChange(savePreset);
+  gui.add(settings, 'midiChannel', Array.from({ length: 16 }, (_, i) => i + 1))
+    .onChange(connectMidiDevice)
+    .onFinishChange(savePreset)
+
+  loadPreset()
+  connectMidiDevice()
+}
