@@ -9,6 +9,7 @@ const settings = {
 }
 
 let noteOn = null
+let noteOnIdent = null
 let finishedNotes = []
 let font;
 
@@ -70,13 +71,17 @@ function connectMidiDevice() {
 
   channel.addListener("noteon", e => {
     console.log("noteon", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+    if (noteOnIdent && noteOnIdent !== e.note.identifier) return
     noteOn = frameCount
+    noteOnIdent = e.note.identifier
   });
 
   channel.addListener("noteoff", e => {
     console.log("noteoff", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+    if (e.note.identifier !== noteOnIdent) return
     const note = { on: frameCount, dur: (frameCount - noteOn) }
     noteOn = null
+    noteOnIdent = null
     finishedNotes.push(note)
   });
 
