@@ -9,7 +9,7 @@ const settings = {
 }
 
 let noteOn = null
-const finishedNotes = []
+let finishedNotes = []
 
 // Create a new canvas to the browser size
 function setup() {
@@ -36,6 +36,10 @@ function drawNote(noteOn) {
 function draw() {
   background(0);
   fill(255);
+
+  // Remove finished notes outside screen
+  const frameScreenLimit = frameCount - windowWidth / settings.speed
+  finishedNotes = finishedNotes.filter(note => note.on > frameScreenLimit)
 
   for (let i = 0; i < finishedNotes.length; i++) {
     const note = finishedNotes[i];
