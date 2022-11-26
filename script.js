@@ -1,9 +1,15 @@
 const GUI = lil.GUI;
 
+const NOTE_HEIGHT = 40
+
 const settings = {
   midiDevice: null,
-  midiChannel: 1
+  midiChannel: 1,
+  speed: 10,
 }
+
+let noteOn = null
+const finishedNotes = []
 
 // Create a new canvas to the browser size
 function setup() {
@@ -15,10 +21,30 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
+function drawFinishedNote(noteOn, duration) {
+  const speed = settings.speed;
+  const y = (windowHeight / 2) - (NOTE_HEIGHT / 2)
+  rect((frameCount - noteOn) * speed, y, duration * speed, NOTE_HEIGHT);
+}
+
+function drawNote(noteOn) {
+  const speed = settings.speed;
+  const y = (windowHeight / 2) - (NOTE_HEIGHT / 2)
+  rect(0, y, (frameCount - noteOn) * speed, NOTE_HEIGHT);
+}
+
 function draw() {
   background(0);
   fill(255);
-  rect(100, 200, 300, 300);
+
+  for (let i = 0; i < finishedNotes.length; i++) {
+    const note = finishedNotes[i];
+    drawFinishedNote(note.on, note.dur)
+  }
+
+  // TODO: clear finished notes when they are out of screen
+
+  if (noteOn) drawNote(noteOn)
 }
 
 function connectMidiDevice() {
@@ -32,10 +58,14 @@ function connectMidiDevice() {
 
   channel.addListener("noteon", e => {
     console.log("noteon", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+    noteOn = frameCount
   });
 
   channel.addListener("noteoff", e => {
     console.log("noteoff", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+    const note = { on: frameCount, dur: (frameCount - noteOn) }
+    noteOn = null
+    finishedNotes.push(note)
   });
 
   console.log(`Listening on MIDI input '${settings.midiDevice}' channel ${settings.midiChannel}`)
@@ -43,6 +73,8 @@ function connectMidiDevice() {
 
 function init() {
   const gui = new GUI();
+
+  gui.add(settings, 'speed', 0.1, 30)
 
   // Enable WEBMIDI.js and trigger the onEnabled() function when ready
   WebMidi
