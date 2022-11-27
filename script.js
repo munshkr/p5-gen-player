@@ -60,7 +60,18 @@ function draw() {
   if (noteOn) drawNote(noteOn)
 }
 
-function connectMidiDevice() {
+function resetListeners() {
+  WebMidi.inputs.forEach(device => {
+    device.channels.forEach(channel => {
+      channel.removeListener("noteon");
+      channel.removeListener("noteoff");
+    })
+  })
+}
+
+function setMidiDevice() {
+  resetListeners();
+
   const device = WebMidi.inputs.filter(d => d.name === settings.midiDevice)[0]
   if (!device) {
     console.error(`No MIDI input device named '${settings.midiDevice}' was found!`)
@@ -123,12 +134,12 @@ function onEnabled() {
   settings.midiDevice = WebMidi.inputs[0].name
 
   gui.add(settings, 'midiDevice', WebMidi.inputs.map(dev => dev.name))
-    .onChange(connectMidiDevice)
+    .onChange(setMidiDevice)
     .onFinishChange(savePreset);
   gui.add(settings, 'midiChannel', Array.from({ length: 16 }, (_, i) => i + 1))
-    .onChange(connectMidiDevice)
+    .onChange(setMidiDevice)
     .onFinishChange(savePreset)
 
   loadPreset()
-  connectMidiDevice()
+  setMidiDevice()
 }
