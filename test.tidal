@@ -1,10 +1,9 @@
 do
-  p "kick" $ note "0*4" # s "[midi, bd]" # midichan 0 # legato 0.5
-  p "bass" $ note "<0 4 6>(3,8)" # s "[midi, jvbass]" # midichan 1 # legato 0.3
-  p "snare" $ note "0(3,8)" # s "[midi, sd]" # midichan 2 # legato 0.3
-  p "hihat" $ note "0*32" # s "[midi, hh]" # midichan 3 # legato 0.4
-  p "perc" $ note "0(5,8)" # s "[midi, perc]" # midichan 4 # legato 0.6
-
-p "kick" $ note "0*4" # s "[midi, bd]" # midichan 0 # legato 0.5
+  p "harmony" $ note "c4 e4 f4 g4" # s "[midi, superpiano]" # midichan 0 # legato 0.8
+  p "kick" $ note "0*4" # s "[midi, bd]" # midichan 1 # legato 0.5
+  p "bass" $ note "<0 4 6>(3,8)" # s "[midi, jvbass]" # midichan 2 # legato 0.3
+  p "snare" $ note "0(3,8)" # s "[midi, sd]" # midichan 3 # legato 0.3
+  p "hihat" $ note "0*16" # s "[midi, hh]" # midichan 4 # legato 0.4
+  p "perc" $ note "0(5,8)" # s "[midi, perc]" # midichan 5 # legato 0.6
 
 hush
