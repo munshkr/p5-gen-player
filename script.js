@@ -1,12 +1,19 @@
 const GUI = lil.GUI;
 
 const NOTE_HEIGHT = 40;
+const NUM_RHYTHM_INSTRUMENTS = 5;
 
 const settings = {
   midiDevice: null,
-  midiChannel: 1,
+  midiChannel1: 1,
+  midiChannel2: 2,
+  midiChannel3: 3,
+  midiChannel4: 4,
+  midiChannel5: 5,
   speed: 10,
 }
+
+const statusRhythm = []
 
 let noteOn = null
 let noteOnIdent = null
@@ -28,15 +35,15 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
-function drawFinishedNote(noteOn, duration) {
+function drawFinishedNote(noteOn, duration, yoff) {
   const speed = settings.speed;
-  const y = (windowHeight / 2) - (NOTE_HEIGHT / 2)
+  const y = yoff + (windowHeight / 2) - (NOTE_HEIGHT / 2)
   rect((frameCount - noteOn) * speed, y, duration * speed, NOTE_HEIGHT);
 }
 
-function drawNote(noteOn) {
+function drawNote(noteOn, yoff) {
   const speed = settings.speed;
-  const y = (windowHeight / 2) - (NOTE_HEIGHT / 2)
+  const y = yoff + (windowHeight / 2) - (NOTE_HEIGHT / 2)
   rect(0, y, (frameCount - noteOn) * speed, NOTE_HEIGHT);
 }
 
@@ -44,20 +51,24 @@ function draw() {
   background(0);
   fill(255);
 
-  // Remove finished notes outside screen
-  const frameScreenLimit = frameCount - windowWidth / settings.speed
-  finishedNotes = finishedNotes.filter(note => note.on > frameScreenLimit)
+  for (let j = 0; j < statusRhythm.length; j++) {
+    const status = statusRhythm[j];
 
-  text('SNARE', 10, 50);
+    // Remove finished notes outside screen
+    const frameScreenLimit = frameCount - windowWidth / settings.speed
+    status.finishedNotes = status.finishedNotes.filter(note => note.on > frameScreenLimit)
 
-  for (let i = 0; i < finishedNotes.length; i++) {
-    const note = finishedNotes[i];
-    drawFinishedNote(note.on, note.dur)
+    // text('SNARE', 10, 50);
+
+    const yoff = 120 * j - 230;
+
+    for (let i = 0; i < status.finishedNotes.length; i++) {
+      const note = status.finishedNotes[i];
+      drawFinishedNote(note.on, note.dur, yoff)
+    }
+
+    if (status.noteOn) drawNote(status.noteOn, yoff)
   }
-
-  // TODO: clear finished notes when they are out of screen
-
-  if (noteOn) drawNote(noteOn)
 }
 
 function resetListeners() {
@@ -78,26 +89,36 @@ function setMidiDevice() {
     return
   }
 
-  const channel = device.channels[settings.midiChannel];
+  for (let i = 0; i < NUM_RHYTHM_INSTRUMENTS; i++) {
+    const channelNum = settings[`midiChannel${i + 1}`]
+    const channel = device.channels[channelNum];
 
-  channel.addListener("noteon", e => {
-    console.log("noteon", e.note.identifier, e.note.number, e.note.attack, e.note.release)
-    if (noteOnIdent && noteOnIdent !== e.note.identifier) return
-    noteOn = frameCount
-    noteOnIdent = e.note.identifier
-  });
+    const status = statusRhythm[i];
 
-  channel.addListener("noteoff", e => {
-    console.log("noteoff", e.note.identifier, e.note.number, e.note.attack, e.note.release)
-    if (e.note.identifier !== noteOnIdent) return
-    const note = { on: frameCount, dur: (frameCount - noteOn) }
-    noteOn = null
-    noteOnIdent = null
-    finishedNotes.push(note)
-  });
+    channel.addListener("noteon", e => {
+      console.log(channelNum, "noteon", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+      if (status.ident && status.ident !== e.note.identifier) return
+      status.noteOn = frameCount
+      status.ident = e.note.identifier
+    });
 
-  console.log(`Listening on MIDI input '${settings.midiDevice}' channel ${settings.midiChannel}`)
+    channel.addListener("noteoff", e => {
+      console.log(channelNum, "noteoff", e.note.identifier, e.note.number, e.note.attack, e.note.release)
+      if (e.note.identifier !== status.ident) return
+      const note = { on: frameCount, dur: (frameCount - status.noteOn) }
+      status.noteOn = null
+      status.ident = null
+      status.finishedNotes.push(note)
+    });
+  }
 }
+
+
+// Build status for rhythimc instruments
+for (let i = 0; i < NUM_RHYTHM_INSTRUMENTS; i++) {
+  statusRhythm.push({ noteOn: null, ident: null, finishedNotes: [] });
+}
+
 
 const gui = new GUI();
 
@@ -136,9 +157,11 @@ function onEnabled() {
   gui.add(settings, 'midiDevice', WebMidi.inputs.map(dev => dev.name))
     .onChange(setMidiDevice)
     .onFinishChange(savePreset);
-  gui.add(settings, 'midiChannel', Array.from({ length: 16 }, (_, i) => i + 1))
-    .onChange(setMidiDevice)
-    .onFinishChange(savePreset)
+  for (let i = 0; i < NUM_RHYTHM_INSTRUMENTS; i++) {
+    gui.add(settings, `midiChannel${i + 1}`, Array.from({ length: 16 }, (_, i) => i + 1))
+      .onChange(setMidiDevice)
+      .onFinishChange(savePreset)
+  }
 
   loadPreset()
   setMidiDevice()
