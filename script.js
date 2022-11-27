@@ -2,6 +2,7 @@ const GUI = lil.GUI;
 
 const NOTE_HEIGHT = 40;
 const NUM_RHYTHM_INSTRUMENTS = 5;
+const NOFILL_INSTS = [4]
 
 const settings = {
   midiDevice: null,
@@ -49,10 +50,17 @@ function drawNote(noteOn, yoff) {
 
 function draw() {
   background(0);
-  fill(255);
 
   for (let j = 0; j < statusRhythm.length; j++) {
     const status = statusRhythm[j];
+
+    if (NOFILL_INSTS.includes(j)) {
+      noFill();
+      stroke(255);
+    } else {
+      fill(255);
+      noStroke();
+    }
 
     // Remove finished notes outside screen
     const frameScreenLimit = frameCount - windowWidth / settings.speed
@@ -60,7 +68,7 @@ function draw() {
 
     // text('SNARE', 10, 50);
 
-    const yoff = 120 * j - 230;
+    const yoff = 100 * j - 140;
 
     for (let i = 0; i < status.finishedNotes.length; i++) {
       const note = status.finishedNotes[i];
