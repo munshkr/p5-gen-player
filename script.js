@@ -91,7 +91,7 @@ function draw() {
       stroke(255);
     } else {
       fill(255);
-      noStroke();
+      stroke(0);
     }
 
     // Remove finished notes outside screen
