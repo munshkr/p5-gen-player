@@ -4,11 +4,12 @@ const NUM_INSTRUMENTS = 6;
 const NOFILL_INSTS = [5];
 const HARMONY_INSTRS = [0];
 const HARMONY_MAP = {
-  'C3': 'I',
-  'D3': 'BII',
-  'E3': 'IV',
-  'F3': 'V',
+  60: 'I',
+  61: 'BII',
+  62: 'IV',
+  63: 'V',
 }
+const POLY_INSTS = [4];
 
 const settings = {
   speed: 5,
@@ -20,8 +21,8 @@ const settings = {
 const instStatus = []
 
 for (let i = 0; i < NUM_INSTRUMENTS; i++) {
-  instStatus.push({ noteOn: null, ident: null, finishedNotes: [] });
-  settings[`midiChannel${i + 1}`] = i + 1;
+  instStatus.push({ currentNotes: {}, finishedNotes: [] });
+  settings[`instrument${i + 1}`] = i + 1;
 }
 
 let font;
@@ -103,21 +104,21 @@ function draw() {
     for (let i = 0; i < status.finishedNotes.length; i++) {
       const note = status.finishedNotes[i];
       if (HARMONY_INSTRS.includes(j)) {
-        // console.log("ident", note.ident)
-        const degree = HARMONY_MAP[note.ident] || '?'
+        const degree = HARMONY_MAP[note.number] || '?'
         drawHarmonyFinishedNote(note.on, note.dur, degree, yoff)
       } else {
-        drawFinishedNote(note.on, note.dur, yoff)
+        const yoffNote = POLY_INSTS.includes(j) ? yoff + (60 - note.number) * settings.noteHeight : yoff
+        drawFinishedNote(note.on, note.dur, yoffNote)
       }
     }
 
-    if (status.noteOn) {
+    for (let [number, noteOn] of Object.entries(status.currentNotes)) {
       if (HARMONY_INSTRS.includes(j)) {
-        // console.log("ident", note.ident)
-        const degree = HARMONY_MAP[status.ident] || '?'
-        drawHarmonyNote(status.noteOn, degree, yoff)
+        const degree = HARMONY_MAP[number] || '?'
+        drawHarmonyNote(noteOn, degree, yoff)
       } else {
-        drawNote(status.noteOn, yoff)
+        const yoffNote = POLY_INSTS.includes(j) ? yoff + (60 - number) * settings.noteHeight : yoff
+        drawNote(noteOn, yoffNote)
       }
     }
   }
@@ -142,25 +143,23 @@ function setMidiDevice() {
   }
 
   for (let i = 0; i < NUM_INSTRUMENTS; i++) {
-    const channelNum = settings[`midiChannel${i + 1}`]
+    const channelNum = settings[`instrument${i + 1}`]
     const channel = device.channels[channelNum];
 
     const status = instStatus[i];
 
     channel.addListener("noteon", e => {
       // console.debug(channelNum, "noteon", e.note.identifier, e.note.number, e.note.attack, e.note.release)
-      if (status.ident && status.ident !== e.note.identifier) return
-      status.noteOn = frameCount
-      status.ident = e.note.identifier
+      if (POLY_INSTS.includes(i) ? status.currentNotes[e.note.number] : Object.keys(status.currentNotes).length > 0) return
+      status.currentNotes[e.note.number] = frameCount
     });
 
     channel.addListener("noteoff", e => {
       // console.debug(channelNum, "noteoff", e.note.identifier, e.note.number, e.note.attack, e.note.release)
-      if (e.note.identifier !== status.ident) return
-      const note = { on: frameCount, dur: (frameCount - status.noteOn), ident: e.note.identifier }
-      status.noteOn = null
-      status.ident = null
-      status.finishedNotes.push(note)
+      // if (status.currentNotes[e.note.number]) return
+      const noteOn = status.currentNotes[e.note.number]
+      delete status.currentNotes[e.note.number]
+      status.finishedNotes.push({ on: frameCount, dur: (frameCount - noteOn), number: e.note.number })
     });
   }
 }
@@ -206,7 +205,7 @@ function onEnabled() {
     .onChange(setMidiDevice)
     .onFinishChange(savePreset);
   for (let i = 0; i < NUM_INSTRUMENTS; i++) {
-    gui.add(settings, `midiChannel${i + 1}`, Array.from({ length: 16 }, (_, i) => i + 1))
+    gui.add(settings, `instrument${i + 1}`, Array.from({ length: 16 }, (_, i) => i + 1))
       .onChange(setMidiDevice)
       .onFinishChange(savePreset)
   }
